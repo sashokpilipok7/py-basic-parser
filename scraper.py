@@ -14,7 +14,7 @@ HEADERS = {
     "Sec-Fetch-User": "?1"
 }
 
-URL = "https://www.work.ua/jobs-km-lawyer/?sort=date"
+URL = "https://www.work.ua/jobs-remote-розробник/?employment=75&sort=date"
 
 async def get_work_ua_jobs():
     async with httpx.AsyncClient() as client:
