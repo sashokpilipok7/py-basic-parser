@@ -1,24 +1,39 @@
-import time
-import httpx
-from bs4 import BeautifulSoup
+import os
+import asyncio
+import logging
+from dotenv import load_dotenv
 
-URL = "https://www.work.ua/jobs-km-lawyer/?sort=date"
-# URL = "https://www.cathedralkp.org.ua/events"
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from scraper import get_work_ua_jobs
 
-def get_work_ua_jobs(page: int, client: httpx.Client, url: str = URL):
-    # response = client.get(url, params={"page": page})
-    response = client.get(url)
-    print(response)
-    soup = BeautifulSoup(response.content, "html.parser")
+load_dotenv()
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-    return [
-       job.text.strip() for job in soup.find_all("h3")
-    ]
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
-def main_parser(start_page, end_page):
-    with httpx.Client() as client:
-        for page in range(start_page, end_page):
-            print(get_work_ua_jobs(page, client, URL))
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привіт! Напишіть /jobs щоб отримати актуальні вакансії.")
+
+@dp.message(Command("jobs"))
+async def cmd_jobs(message: types.Message):
+    await message.answer("Шукаю вакансії, зачекайте...")
+    jobs = await get_work_ua_jobs()
+    
+    if not jobs:
+        await message.answer("Не вдалося знайти вакансії або сталася помилка.")
+        return
+    
+    # Send first 5 jobs to avoid flooding
+    for job in jobs[:5]:
+        response_text = f"<b>{job['title']}</b>\n{job['link']}"
+        await message.answer(response_text, parse_mode="HTML")
+
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    main_parser(start_page=0, end_page=1)
+    asyncio.run(main())
