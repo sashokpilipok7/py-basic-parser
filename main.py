@@ -6,7 +6,7 @@ from typing import Callable
 from aiohttp import web
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from scraper import get_work_ua_jobs
 
 load_dotenv()
@@ -37,30 +37,23 @@ async def start_web_server():
     logging.info(f"Web server started on port {port}")
 
 # --- Bot Part ---
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привіт! \n Напишіть /jobs_dou щоб отримати свіжі вакансії розробника. \n Або /jobs_lawyer щоб отримати свіжі юридичні вакансії.")
 
-async def cmd_base_jobs(message: types.Message, base_func: Callable):
+@dp.message(Command("jobs_dou", "jobs_lawyer"))
+async def cmd_jobs(message: types.Message, command: CommandObject):
     await message.answer("Шукаю вакансії, зачекайте...")
-    jobs = await get_work_ua_jobs(message.text)
+    jobs = await get_work_ua_jobs(command.command)
     if not jobs:
         await message.answer("Не вдалося знайти вакансії або сталася помилка.")
         return
 
     # Send first 5 jobs to avoid flooding
+    response_text = ""
     for job in jobs[:5]:
-        response_text = f"<b>{job['title']}</b>\n{job['link']}"
-        await message.answer(response_text, parse_mode="HTML")
-
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer("Привіт! \n Напишіть /jobs_dou щоб отримати свіжі вакансії розробника. \n Або /jobs_lawyer щоб отримати свіжі юридичні вакансії.")
-
-@dp.message(Command("jobs_dou"))
-async def cmd_jobs_dou(message: types.Message):
-    return await cmd_base_jobs(message, get_work_ua_jobs)
-
-@dp.message(Command("jobs_lawyer"))
-async def cmd_jobs_lawyer(message: types.Message):
-    return await cmd_base_jobs(message, get_work_ua_jobs)
+        response_text += f"<b>{job['title']}</b>\n{job['link']} \n\n"
+    return await message.answer(response_text, parse_mode="HTML")
 
 async def main():
     # Start the web server concurrently with the bot polling
