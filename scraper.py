@@ -3,13 +3,46 @@ import concurrent.futures
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 
-URL = "https://www.work.ua/jobs-remote-розробник/?employment=75&sort=date"
+URL = "https://jobs.dou.ua/vacancies/?search=Fullstack&exp=1-3"
+
+def parse_from_work_ua(soup: BeautifulSoup) -> list:
+    jobs = []
+    for h2 in soup.find_all("h2", class_="my-0"):
+        a_tag = h2.find("a")
+        if a_tag and a_tag.get("href"):
+            title = a_tag.text.strip()
+            link = "https://www.work.ua" + a_tag.get("href")
+            jobs.append({"title": title, "link": link})
+    return jobs
+
+def parse_from_dou(soup: BeautifulSoup) -> list:
+    jobs = []
+    for h2 in soup.find_all("li", class_="l-vacancy"):
+        a_tag = h2.find("a", class_="vt")
+        if a_tag and a_tag.get("href"):
+            title = a_tag.text.strip()
+            link = a_tag.get("href")
+            jobs.append({"title": title, "link": link})
+    return jobs
 
 async def get_work_ua_jobs():
     def fetch_url():
         req = Request(
             url=URL,
-            headers={'User-Agent': 'Mozilla/5.0'}
+            headers={'User-Agent': 'Mozilla/5.0',
+                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                     'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+                     'Rate-limit': '3',
+                     'Connection': 'keep-alive',
+                     "Upgrade-Insecure-Requests": "1",
+                     "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                     "Sec-Ch-Ua-Mobile": "?0",
+                     "Sec-Ch-Ua-Platform": '"Windows"',
+                     "Sec-Fetch-Dest": "document",
+                     "Sec-Fetch-Mode": "navigate",
+                     "Sec-Fetch-Site": "none",
+                     "Sec-Fetch-User": "?1"
+                     }
         )
         with urlopen(req) as response:
             return response.read()
@@ -30,12 +63,4 @@ async def get_work_ua_jobs():
     
     soup = BeautifulSoup(html_decoded, "html.parser")
     
-    jobs = []
-    for h2 in soup.find_all("h2", class_="my-0"):
-        a_tag = h2.find("a")
-        if a_tag and a_tag.get("href"):
-            title = a_tag.text.strip()
-            link = "https://www.work.ua" + a_tag.get("href")
-            jobs.append({"title": title, "link": link})
-            
-    return jobs
+    return parse_from_dou(soup)
