@@ -3,7 +3,9 @@ import concurrent.futures
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 
-URL = "https://jobs.dou.ua/vacancies/?search=Fullstack&exp=1-3"
+URL_DEV = "https://jobs.dou.ua/vacancies/?search=Fullstack&exp=1-3"
+URL_LAWYER = "https://www.work.ua/jobs-remote-%D1%8E%D1%80%D0%B8%D1%81%D1%82/"
+
 
 def parse_from_work_ua(soup: BeautifulSoup) -> list:
     jobs = []
@@ -25,10 +27,11 @@ def parse_from_dou(soup: BeautifulSoup) -> list:
             jobs.append({"title": title, "link": link})
     return jobs
 
-async def get_work_ua_jobs():
+async def get_work_ua_jobs(query: str) -> list:
     def fetch_url():
+        current_url = URL_DEV if query == '/jobs_dou' else URL_LAWYER
         req = Request(
-            url=URL,
+            url=current_url,
             headers={'User-Agent': 'Mozilla/5.0',
                      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                      'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -63,4 +66,5 @@ async def get_work_ua_jobs():
     
     soup = BeautifulSoup(html_decoded, "html.parser")
     
-    return parse_from_dou(soup)
+    result = parse_from_dou(soup) if query == '/jobs_dou' else parse_from_work_ua(soup)
+    return result if result else []

@@ -39,10 +39,8 @@ async def start_web_server():
 # --- Bot Part ---
 
 async def cmd_base_jobs(message: types.Message, base_func: Callable):
-    print(message.quote)
     await message.answer("Шукаю вакансії, зачекайте...")
-    # jobs = await get_work_ua_jobs()
-    jobs = []
+    jobs = await get_work_ua_jobs(message.text)
     if not jobs:
         await message.answer("Не вдалося знайти вакансії або сталася помилка.")
         return
